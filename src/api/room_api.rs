@@ -100,30 +100,44 @@ pub fn get_room(
 
     match room_detail {
         Ok(room) => {
-            let user_detail = user_repo.get_user(&room.booked_by.unwrap().to_string());
-            match user_detail {
-                Ok(user) => {
-                    // Construct a HashMap to represent the additional field ('booked_by')
-                    let mut response_data = HashMap::new();
-                    response_data.insert("room".to_string(), serde_json::to_value(&room).unwrap());
-                    response_data.insert(
-                        "booked_by".to_string(),
-                        serde_json::to_value(&user).unwrap(),
-                    );
+            // Check if the room is booked
+            if room.is_booked {
+                let user_detail = user_repo.get_user(&room.booked_by.unwrap().to_string());
+                match user_detail {
+                    Ok(user) => {
+                        // Construct a HashMap to represent the additional field ('booked_by')
+                        let mut response_data = HashMap::new();
+                        response_data
+                            .insert("room".to_string(), serde_json::to_value(&room).unwrap());
+                        response_data.insert(
+                            "booked_by".to_string(),
+                            serde_json::to_value(&user).unwrap(),
+                        );
 
-                    Ok(response_fn(
-                        constants::SUCCESS_TRUE,
-                        constants::SINGLE_ROOM.to_string(),
-                        Some(response_data), // Include the HashMap in the response
-                        constants::EMPTY.to_string(),
-                    ))
+                        Ok(response_fn(
+                            constants::SUCCESS_TRUE,
+                            constants::SINGLE_ROOM.to_string(),
+                            Some(response_data), // Include the HashMap in the response
+                            constants::EMPTY.to_string(),
+                        ))
+                    }
+                    Err(e) => Err(response_fn(
+                        constants::SUCCESS_FALSE,
+                        constants::SERVER_ERROR_USER.to_string(),
+                        None,
+                        e.to_string(),
+                    )),
                 }
-                Err(e) => Err(response_fn(
-                    constants::SUCCESS_FALSE,
-                    constants::SERVER_ERROR_USER.to_string(),
-                    None,
-                    e.to_string(),
-                )),
+            } else {
+                let mut response_data = HashMap::new();
+                response_data.insert("room".to_string(), serde_json::to_value(&room).unwrap());
+
+                Ok(response_fn(
+                    constants::SUCCESS_TRUE,
+                    constants::SINGLE_ROOM.to_string(),
+                    Some(response_data),
+                    constants::EMPTY.to_string(),
+                ))
             }
         }
         Err(e) => Err(response_fn(
@@ -253,7 +267,6 @@ pub fn cancel_booking(
     user_repo: &State<UserRepo>,
     booking_data: Json<BookingData>,
 ) -> Result<Json<Message<HashMap<String, serde_json::Value>>>, Json<Message<Room>>> {
-    
     let user_id = &booking_data.booked_by;
     let room_number = booking_data.room_number;
 

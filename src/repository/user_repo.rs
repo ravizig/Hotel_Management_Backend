@@ -1,7 +1,10 @@
 extern crate dotenv;
 
+use std::{collections::HashMap, env};
+
 use bcrypt::{hash, verify, DEFAULT_COST};
 
+use jsonwebtoken::{encode, EncodingKey, Header};
 use mongodb::{
     bson::{doc, extjson::de::Error, oid::ObjectId},
     results::InsertOneResult,
@@ -10,7 +13,7 @@ use mongodb::{
 use rocket::serde::json::Json;
 use serde::de::Error as _;
 
-use crate::models::user_model::User;
+use crate::{constants::constants, models::user_model::User};
 
 use crate::repository::mongodb_repo::MongoRepo;
 pub struct UserRepo {
@@ -49,7 +52,7 @@ impl UserRepo {
             .clone_with_type::<User>()
             .insert_one(new_doc, None)
             .ok()
-            .expect("Error in creating user");
+            .expect(constants::ERROR_CREATING_USER);
 
         return Ok(user);
     }
@@ -62,7 +65,7 @@ impl UserRepo {
             .users_col
             .find_one(filter, None)
             .ok()
-            .expect("Error getting user's detail");
+            .expect(constants::ERROR_FETCHING_USER);
         if user_detail.is_none() {
             return Err(Error::custom("User not found"));
         } else {
@@ -77,9 +80,9 @@ impl UserRepo {
             .users_col
             .find_one(filter, None)
             .ok()
-            .expect("Error getting user's detail");
+            .expect(constants::ERROR_FETCHING_USER);
         if user_detail.is_none() {
-            return Err(Error::custom("User not found"));
+            return Err(Error::custom(constants::USER_NOT_FOUND));
         } else {
             return Ok(user_detail.unwrap());
         }
@@ -91,7 +94,7 @@ impl UserRepo {
             .users_col
             .find(None, None)
             .ok()
-            .expect("Error getting list of users");
+            .expect(constants::ERROR_FETCHING_USER);
 
         let users = cursors.map(|doc| doc.unwrap()).collect();
         Ok(users)
@@ -101,12 +104,12 @@ impl UserRepo {
         &self,
         email: &String,
         provided_password: &String,
-    ) -> Result<User, Json<String>> {
+    ) -> Result<String, Json<String>> {
         let user_result = self.get_user_using_email(email);
 
         let user = match user_result {
             Ok(user) => user,
-            _ => return Err(Json("User does not exist".to_string())),
+            _ => return Err(Json(constants::USER_NOT_FOUND.to_string())),
         };
 
         let stored_password = user.password.clone();
@@ -114,12 +117,23 @@ impl UserRepo {
         match verify(provided_password, &stored_password) {
             Ok(valid) => {
                 if valid {
-                    return Ok(user);
+                    let secret_key = env::var("API_SECRET_KEY").expect(constants::FAILED_ENV);
+
+                    let token = encode(
+                        &Header::default(),
+                        &user,
+                        &EncodingKey::from_secret(secret_key.as_ref()),
+                    );
+
+                    match token {
+                        Ok(token) => return Ok(token),
+                        Err(_) => return Err(Json(constants::ERROR_TOKEN_GENERATING.to_string())),
+                    }
                 } else {
-                    return Err(Json("Invalid Password".to_string()));
+                    return Err(Json(constants::INVALID_PASSWORD.to_string()));
                 }
             }
-            Err(_) => return Err(Json("Error in verifying password".to_string())),
+            Err(_) => return Err(Json(constants::ERROR_PASSWORD_VERIFY.to_string())),
         };
     }
 }

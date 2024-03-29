@@ -145,7 +145,7 @@ pub fn get_user_using_email(
 pub fn user_login(
     db: &State<UserRepo>,
     login_data: Json<User>,
-) -> Result<Json<Message<User>>, Json<Message<User>>> {
+) -> Result<Json<Message<String>>, Json<Message<User>>> {
     let email = login_data.email.to_string();
     let provided_password = login_data.password.to_string();
 
@@ -161,10 +161,10 @@ pub fn user_login(
     let login_details = db.user_login(&email, &provided_password);
 
     match login_details {
-        Ok(user) => Ok(response_fn(
+        Ok(token) => Ok(response_fn(
             constants::SUCCESS_TRUE,
             constants::LOGIN.to_string(),
-            Some(user),
+            Some(token),
             constants::EMPTY.to_string(),
         )),
         Err(e) => Err(response_fn(

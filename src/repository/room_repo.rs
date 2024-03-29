@@ -8,7 +8,7 @@ use mongodb::{
 
 use serde::de::Error as _;
 
-use crate::models::{room_model::Room, user_model::User};
+use crate::{constants::constants, models::{room_model::Room, user_model::User}};
 
 use crate::repository::mongodb_repo::MongoRepo;
 use crate::repository::user_repo::UserRepo;
@@ -47,7 +47,7 @@ impl RoomRepo {
             .clone_with_type::<Room>()
             .insert_one(new_doc, None)
             .ok()
-            .expect("Error in creating room");
+            .expect(constants::ERROR_CREATING_ROOM);
 
         return Ok(room);
     }
@@ -59,7 +59,7 @@ impl RoomRepo {
             .clone_with_type::<Room>()
             .find(None, None)
             .ok()
-            .expect("Error in fetching rooms");
+            .expect(constants::ERROR_FETCHING_ROOM);
         let rooms = cursors.map(|doc| doc.unwrap()).collect();
         Ok(rooms)
     }
@@ -73,10 +73,10 @@ impl RoomRepo {
             .clone_with_type::<Room>()
             .find_one(filter, None)
             .ok()
-            .expect("Error in fetching room");
+            .expect(constants::ERROR_FETCHING_ROOM);
 
         if room_detail.is_none() {
-            return Err(Error::custom("Room not found"));
+            return Err(Error::custom(constants::ROOM_NOT_FOUND));
         } else {
             return Ok(room_detail.unwrap());
         }
@@ -91,10 +91,10 @@ impl RoomRepo {
             .clone_with_type::<Room>()
             .find_one(filter, None)
             .ok()
-            .expect("Error in fetching room");
+            .expect(constants::ERROR_FETCHING_ROOM);
 
         if room_detail.is_none() {
-            return Err(Error::custom("Room not found"));
+            return Err(Error::custom(constants::ROOM_NOT_FOUND));
         } else {
             return Ok(room_detail.unwrap());
         }
@@ -128,7 +128,7 @@ impl RoomRepo {
                 .clone_with_type::<User>()
                 .update_one(filter_user, update_user_doc, None)
                 .ok()
-                .expect("Error updating user's booked rooms");
+                .expect(constants::ERROR_UPDATING_USER);
 
             // Construct the update document for the room
             let update_doc = doc! {
@@ -145,11 +145,11 @@ impl RoomRepo {
                 .clone_with_type::<Room>()
                 .update_one(filter, update_doc, None)
                 .ok()
-                .expect("Error updating room booking status");
+                .expect(constants::ERROR_UPDATING_ROOM);
 
             Ok((update_result, update_user))
         } else {
-            Err(Error::custom("User not found"))
+            Err(Error::custom(constants::USER_NOT_FOUND))
         }
     }
 
@@ -184,7 +184,7 @@ impl RoomRepo {
                 .clone_with_type::<User>()
                 .update_one(doc! { "_id": user_id.clone() }, update_user_doc, None)
                 .ok()
-                .expect("Error updating user's booked rooms");
+                .expect(constants::ERROR_UPDATING_ROOM);
 
             // Construct the update document for the room
             let update_doc = doc! {
@@ -201,12 +201,13 @@ impl RoomRepo {
                 .clone_with_type::<Room>()
                 .update_one(filter, update_doc, None)
                 .ok()
-                .expect("Error updating room booking status");
+                .expect(constants::ERROR_UPDATING_ROOM);
 
             Ok((update_result, update_user))
 
         } else {
-            Err(Error::custom("User not found"))
+            Err(Error::custom(constants::USER_NOT_FOUND))
         }
     }
+
 }

@@ -8,7 +8,7 @@ pub mod constants;
 #[macro_use]
 extern crate rocket;
 
-use api::{item_api::{create_item, get_all_items, get_item,  get_item_using_name}, room_api::{book_room, cancel_booking, create_room, get_all_rooms, get_room, get_room_using_number}, user_api::{get_all_users, get_user, get_user_using_email, hello, user_login, user_signup}};
+use api::{item_api::{create_item, delete_item, get_all_items, get_item, get_item_using_name, search_item, update_item}, room_api::{book_room, cancel_booking, create_room, get_all_rooms, get_room, get_room_using_number}, user_api::{get_all_users, get_user, get_user_using_email, hello, user_login, user_signup}};
 use repository::{item_repo::ItemRepo, room_repo::RoomRepo, user_repo::UserRepo};
 use crate::repository::mongodb_repo::MongoRepo;
 
@@ -27,5 +27,5 @@ fn rocket() -> _ {
             .mount("/", routes![hello])
             .mount("/user", routes![user_signup, user_login, get_all_users, get_user, get_user_using_email])
             .mount("/room", routes![create_room, get_room_using_number, get_room, get_all_rooms, book_room, cancel_booking])
-            .mount("/item", routes![create_item, get_all_items, get_item, get_item_using_name])
+            .mount("/item", routes![create_item, get_all_items, get_item, get_item_using_name, update_item, delete_item, search_item])
 }
